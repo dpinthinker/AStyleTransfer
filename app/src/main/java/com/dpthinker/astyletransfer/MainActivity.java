@@ -85,6 +85,10 @@ public class MainActivity extends AppCompatActivity {
     private final static int IMAGE_MEAN = 0;
     private final static int IMAGE_STD = 255;
 
+    private Interpreter mPredictInterpreter;
+    private Interpreter mTransformInterpreter;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -161,16 +165,20 @@ public class MainActivity extends AppCompatActivity {
 
                 try {
                     // init two interpreter instances: style predict and style transform
-                    Interpreter predictInterpreter = new Interpreter(
-                            loadModelFile(MainActivity.this, PREDICT_MODEL), predictOptions);
+                    if (mPredictInterpreter == null) {
+                        mPredictInterpreter = new Interpreter(
+                                loadModelFile(MainActivity.this, PREDICT_MODEL), predictOptions);
+                    }
 
-                    Interpreter transformInterpreter = new Interpreter(
-                            loadModelFile(MainActivity.this, TRANSFORM_MODE), transformOptions);
+                    if (mTransformInterpreter == null) {
+                        mTransformInterpreter = new Interpreter(
+                                loadModelFile(MainActivity.this, TRANSFORM_MODE), transformOptions);
+                    }
 
-                    ByteBuffer bottleneck = runPredict(predictInterpreter, mStyleImage);
+                    ByteBuffer bottleneck = runPredict(mPredictInterpreter, mStyleImage);
 
                     Bitmap mTransferredImage =
-                            runTransform(transformInterpreter, mContentImage, bottleneck);
+                            runTransform(mTransformInterpreter, mContentImage, bottleneck);
 
                     saveImage(mTransferredImage);
 
