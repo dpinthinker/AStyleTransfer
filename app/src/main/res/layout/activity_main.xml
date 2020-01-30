@@ -16,7 +16,7 @@
             android:layout_height="wrap_content"
             android:textAlignment="center"
             android:textColor="@color/colorBlack"
-            android:textSize="20dp"
+            android:textSize="20sp"
             android:text="Content Image"/>
         <FrameLayout
             android:layout_width="wrap_content"
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:textAlignment="center"
             android:textColor="@color/colorBlack"
-            android:textSize="20dp"
+            android:textSize="20sp"
             android:text="Style Image"/>
         <FrameLayout
             android:layout_width="wrap_content"

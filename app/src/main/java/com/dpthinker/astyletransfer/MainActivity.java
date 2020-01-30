@@ -267,7 +267,6 @@ public class MainActivity extends AppCompatActivity {
 //            Log.e(TAG, "runTransform outputFloatArray item: " + f);
 //        }
         return convertOutputToBmp(outputFloatArray);
-
     }
 
     private Bitmap convertOutputToBmp(float[] output) {
@@ -297,6 +296,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             Uri uri = data.getData();
             try {
@@ -317,7 +317,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Not found input image: " + uri.toString());
             }
         }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private Bitmap preProcessBitmap(Bitmap bitmap, int size) {

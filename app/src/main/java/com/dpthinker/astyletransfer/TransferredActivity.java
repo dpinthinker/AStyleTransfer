@@ -35,6 +35,11 @@ public class TransferredActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transferred);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         String dataDir = getFilesDir().toString();
         File myDir = new File(dataDir);
         String fileName = "TransferredImage.jpg";
@@ -43,5 +48,11 @@ public class TransferredActivity extends AppCompatActivity {
         Bitmap transferredBmp = BitmapFactory.decodeFile(file.getAbsolutePath());
         ImageView transferredImgView = findViewById(R.id.transferred_img);
         transferredImgView.setImageBitmap(transferredBmp);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        finish();
     }
 }
