@@ -273,12 +273,13 @@ public class MainActivity extends AppCompatActivity {
         Bitmap result = Bitmap.createBitmap(
                 CONTENT_IMG_SIZE, CONTENT_IMG_SIZE, Bitmap.Config.ARGB_8888);
         int[] pixels = new int[CONTENT_IMG_SIZE * CONTENT_IMG_SIZE];
-        for (int i = 0; i < CONTENT_IMG_SIZE * CONTENT_IMG_SIZE * 3; i++) {
-            int a = 0xFF;
-            float r = output[i] * 255.0f;
-            float g = output[i++] * 255.0f;
-            float b = output[i++] * 255.0f;
-            pixels[(i + 1) / 3 - 1] = a << 24 | (int)r << 16 | (int) g << 8 | (int) b;
+        int a = 0xFF << 24;
+        for (int i = 0, j = 0; j < output.length; i++) {
+            int r = (int)(output[j++] * 255.0f);
+            int g = (int)(output[j++] * 255.0f);
+            int b = (int)(output[j++] * 255.0f);
+            //Log.e(TAG, "convertOutputToBmp i: " + i + ", (" + r + ", " + g + ", " + b + ")");
+            pixels[i] = (a | (r << 16) | (g << 8) | b);
         }
         result.setPixels(pixels, 0, CONTENT_IMG_SIZE, 0, 0, CONTENT_IMG_SIZE, CONTENT_IMG_SIZE);
         return result;
