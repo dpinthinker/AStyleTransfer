@@ -90,9 +90,6 @@ public class MainActivity extends AppCompatActivity {
     private Interpreter mPredictInterpreter;
     private Interpreter mTransformInterpreter;
 
-    private TimerRecorder mTimeRecoder = TimerRecorder.getInstance();
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -153,20 +150,20 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                mTimeRecoder.clean(); // init time recorder
+                TimerRecorder.getInstance().clean(); // init time recorder
 
                 Interpreter.Options predictOptions = new Interpreter.Options();
                 switch (mDelegationMode) {
                     case USING_CPU:
-                        mTimeRecoder.setPredictType(TimerRecorder.CPU);
+                        TimerRecorder.getInstance().setPredictType(TimerRecorder.CPU);
                         break;
                     case USING_GPU:
                         predictOptions.addDelegate(new GpuDelegate());
-                        mTimeRecoder.setPredictType(TimerRecorder.GPU);
+                        TimerRecorder.getInstance().setPredictType(TimerRecorder.GPU);
                         break;
                     case USING_NNAPI:
                         predictOptions.addDelegate(new NnApiDelegate());
-                        mTimeRecoder.setPredictType(TimerRecorder.NNAPI);
+                        TimerRecorder.getInstance().setPredictType(TimerRecorder.NNAPI);
                         break;
                 }
 
@@ -229,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
         long startTime = SystemClock.elapsedRealtime();
         tflite.run(inputTensorImage.getBuffer(), outputTensorBuffer.getBuffer());
         long timeInterval = SystemClock.elapsedRealtime() - startTime;
-        mTimeRecoder.setPredictTime(String.valueOf(timeInterval));
+        TimerRecorder.getInstance().setPredictTime(String.valueOf(timeInterval));
 
         return outputTensorBuffer.getBuffer();
     }
@@ -251,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
         long startTime = SystemClock.elapsedRealtime();
         tflite.runForMultipleInputsOutputs(inputs, outputs);
         long timeInterval = SystemClock.elapsedRealtime() - startTime;
-        mTimeRecoder.setTransformTime(String.valueOf(timeInterval));
+        TimerRecorder.getInstance().setTransformTime(String.valueOf(timeInterval));
 
         return convertOutputToBmp(outputTensorBuffer.getFloatArray());
     }
