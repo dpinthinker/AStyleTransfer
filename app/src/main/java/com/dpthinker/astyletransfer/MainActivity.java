@@ -35,6 +35,7 @@ import android.widget.Toast;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.Tensor;
 import org.tensorflow.lite.gpu.GpuDelegate;
 import org.tensorflow.lite.nnapi.NnApiDelegate;
 import org.tensorflow.lite.support.common.ops.NormalizeOp;
@@ -212,11 +213,9 @@ public class MainActivity extends AppCompatActivity {
     private ByteBuffer runPredict(Interpreter tflite, Bitmap styleImage) {
         TensorImage inputTensorImage = getInputTensorImage(tflite, styleImage);
 
-        int outputTensorIndex = 0;
-        int[] outputShape = tflite.getOutputTensor(outputTensorIndex).shape();
-        DataType outputDataType = tflite.getOutputTensor(outputTensorIndex).dataType();
+        Tensor outputTensor = tflite.getOutputTensor(/* outputTensorIndex */ 0);
         TensorBuffer outputTensorBuffer
-                = TensorBuffer.createFixedSize(outputShape, outputDataType);
+                = TensorBuffer.createFixedSize(outputTensor.shape(), outputTensor.dataType());
 
         long startTime = SystemClock.elapsedRealtime();
         tflite.run(inputTensorImage.getBuffer(), outputTensorBuffer.getBuffer());
