@@ -22,14 +22,12 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.util.Log;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import java.io.File;
 
 public class TransferredActivity extends AppCompatActivity {
-
-    private static final String TAG = "TransferredActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,15 +42,25 @@ public class TransferredActivity extends AppCompatActivity {
         File myDir = new File(dataDir);
         String fileName = "TransferredImage.jpg";
         File file = new File(myDir, fileName);
-        Log.e(TAG, file.getName() + " is exist: " + file.exists());
         Bitmap transferredBmp = BitmapFactory.decodeFile(file.getAbsolutePath());
         ImageView transferredImgView = findViewById(R.id.transferred_img);
         transferredImgView.setImageBitmap(transferredBmp);
+
+        TextView resTextView = findViewById(R.id.transferred_str);
+        resTextView.setText(TimerRecorder.getInstance().getCollectedTime());
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        TimerRecorder.getInstance().clean();
+        finish();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        TimerRecorder.getInstance().clean();
         finish();
     }
 }

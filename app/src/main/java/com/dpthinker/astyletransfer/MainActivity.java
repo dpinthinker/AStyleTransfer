@@ -25,6 +25,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -49,6 +50,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.sql.Time;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -87,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Interpreter mPredictInterpreter;
     private Interpreter mTransformInterpreter;
+
+    private TimerRecorder mTimeRecoder = TimerRecorder.getInstance();
 
 
     @Override
@@ -149,15 +153,20 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
+                mTimeRecoder.clean(); // init time recorder
+
                 Interpreter.Options predictOptions = new Interpreter.Options();
                 switch (mDelegationMode) {
                     case USING_CPU:
+                        mTimeRecoder.setPredictType(TimerRecorder.CPU);
                         break;
                     case USING_GPU:
                         predictOptions.addDelegate(new GpuDelegate());
+                        mTimeRecoder.setPredictType(TimerRecorder.GPU);
                         break;
                     case USING_NNAPI:
                         predictOptions.addDelegate(new NnApiDelegate());
+                        mTimeRecoder.setPredictType(TimerRecorder.NNAPI);
                         break;
                 }
 
@@ -209,16 +218,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private ByteBuffer runPredict(Interpreter tflite, Bitmap styleImage) {
-        int imageTensorIndex = 0;
-        DataType imageDataType = tflite.getInputTensor(imageTensorIndex).dataType();
-        TensorImage inputTensorImage = new TensorImage(imageDataType);
-        inputTensorImage.load(styleImage);
-
-        ImageProcessor imageProcessor =
-                new ImageProcessor.Builder()
-                        .add(new NormalizeOp(IMAGE_MEAN, IMAGE_STD))
-                        .build();
-        inputTensorImage = imageProcessor.process(inputTensorImage);
+        TensorImage inputTensorImage = getInputTensorImage(tflite, styleImage);
 
         int outputTensorIndex = 0;
         int[] outputShape = tflite.getOutputTensor(outputTensorIndex).shape();
@@ -226,47 +226,45 @@ public class MainActivity extends AppCompatActivity {
         TensorBuffer outputTensorBuffer
                 = TensorBuffer.createFixedSize(outputShape, outputDataType);
 
-        tflite.run(inputTensorImage.getBuffer(), outputTensorBuffer.getBuffer().rewind());
-
-        outputTensorBuffer.getBuffer().rewind();
+        long startTime = SystemClock.elapsedRealtime();
+        tflite.run(inputTensorImage.getBuffer(), outputTensorBuffer.getBuffer());
+        long timeInterval = SystemClock.elapsedRealtime() - startTime;
+        mTimeRecoder.setPredictTime(String.valueOf(timeInterval));
 
         return outputTensorBuffer.getBuffer();
     }
 
     private Bitmap runTransform(Interpreter tflite, Bitmap contentImage, ByteBuffer bottleneck) {
-        int imageTensorIndex = 0;
-        DataType imageDataType = tflite.getInputTensor(imageTensorIndex).dataType();
-        TensorImage inputTensorImage = new TensorImage(imageDataType);
-        inputTensorImage.load(contentImage);
-
-        ImageProcessor imageProcessor =
-                new ImageProcessor.Builder()
-                        .add(new NormalizeOp(IMAGE_MEAN, IMAGE_STD))
-                        .build();
-        inputTensorImage = imageProcessor.process(inputTensorImage);
-
-        inputTensorImage.getBuffer().rewind();
+        TensorImage inputTensorImage = getInputTensorImage(tflite, contentImage);
 
         Object[] inputs = new Object[2];
         inputs[0] = inputTensorImage.getBuffer();
         inputs[1] = bottleneck;
 
-        int outputTensorIndex = 0;
-        int[] outputShape = new int[]{
-                DIM_BATCH_SIZE, CONTENT_IMG_SIZE, CONTENT_IMG_SIZE, DIM_PIXEL_SIZE};
-        DataType outputDataType = tflite.getOutputTensor(outputTensorIndex).dataType();
-        TensorBuffer outputTensorBuffer
-                = TensorBuffer.createFixedSize(outputShape, outputDataType);
-
+        int[] outputShape =
+                new int[] {DIM_BATCH_SIZE, CONTENT_IMG_SIZE, CONTENT_IMG_SIZE, DIM_PIXEL_SIZE};
+        DataType outputDataType = tflite.getOutputTensor(/* outputTensorIndex */ 0).dataType();
+        TensorBuffer outputTensorBuffer = TensorBuffer.createFixedSize(outputShape, outputDataType);
         Map<Integer, Object> outputs = new HashMap<>();
-        outputs.put(0, outputTensorBuffer.getBuffer().rewind());
+        outputs.put(0, outputTensorBuffer.getBuffer());
+
+        long startTime = SystemClock.elapsedRealtime();
         tflite.runForMultipleInputsOutputs(inputs, outputs);
-        outputTensorBuffer.getBuffer().rewind();
-        float[] outputFloatArray = outputTensorBuffer.getFloatArray();
-//        for (float f : outputFloatArray) {
-//            Log.e(TAG, "runTransform outputFloatArray item: " + f);
-//        }
-        return convertOutputToBmp(outputFloatArray);
+        long timeInterval = SystemClock.elapsedRealtime() - startTime;
+        mTimeRecoder.setTransformTime(String.valueOf(timeInterval));
+
+        return convertOutputToBmp(outputTensorBuffer.getFloatArray());
+    }
+
+    private TensorImage getInputTensorImage(Interpreter tflite, Bitmap inputBitmap) {
+        DataType imageDataType = tflite.getInputTensor(/* imageTensorIndex */0).dataType();
+        TensorImage inputTensorImage = new TensorImage(imageDataType);
+        inputTensorImage.load(inputBitmap);
+
+        ImageProcessor imageProcessor =
+                new ImageProcessor.Builder().add(new NormalizeOp(IMAGE_MEAN, IMAGE_STD)).build();
+
+        return imageProcessor.process(inputTensorImage);
     }
 
     private Bitmap convertOutputToBmp(float[] output) {
@@ -278,7 +276,6 @@ public class MainActivity extends AppCompatActivity {
             int r = (int)(output[j++] * 255.0f);
             int g = (int)(output[j++] * 255.0f);
             int b = (int)(output[j++] * 255.0f);
-            //Log.e(TAG, "convertOutputToBmp i: " + i + ", (" + r + ", " + g + ", " + b + ")");
             pixels[i] = (a | (r << 16) | (g << 8) | b);
         }
         result.setPixels(pixels, 0, CONTENT_IMG_SIZE, 0, 0, CONTENT_IMG_SIZE, CONTENT_IMG_SIZE);
