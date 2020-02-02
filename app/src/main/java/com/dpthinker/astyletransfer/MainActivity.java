@@ -86,9 +86,6 @@ public class MainActivity extends AppCompatActivity {
     private final static int IMAGE_MEAN = 0;
     private final static int IMAGE_STD = 255;
 
-    private Interpreter mPredictInterpreter;
-    private Interpreter mTransformInterpreter;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -149,9 +146,13 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                TimerRecorder.getInstance().clean(); // init time recorder
+                // init some key things
+                TimerRecorder.getInstance().clean();
+                Interpreter predictInterpreter;
+                Interpreter transformInterpreter;
 
                 Interpreter.Options predictOptions = new Interpreter.Options();
+                //predictOptions.setNumThreads(5);
                 switch (mDelegationMode) {
                     case USING_CPU:
                         TimerRecorder.getInstance().setPredictType(TimerRecorder.CPU);
@@ -166,24 +167,19 @@ public class MainActivity extends AppCompatActivity {
                         break;
                 }
 
-                Interpreter.Options transformOptions = new Interpreter.Options();
-
                 try {
                     // init two interpreter instances: style predict and style transform
-                    if (mPredictInterpreter == null) {
-                        mPredictInterpreter = new Interpreter(
-                                loadModelFile(MainActivity.this, PREDICT_MODEL), predictOptions);
-                    }
+                    predictInterpreter = new Interpreter(
+                            loadModelFile(MainActivity.this, PREDICT_MODEL), predictOptions);
 
-                    if (mTransformInterpreter == null) {
-                        mTransformInterpreter = new Interpreter(
-                                loadModelFile(MainActivity.this, TRANSFORM_MODE), transformOptions);
-                    }
+                    Interpreter.Options transformOptions = new Interpreter.Options();
+                    transformInterpreter = new Interpreter(
+                            loadModelFile(MainActivity.this, TRANSFORM_MODE), transformOptions);
 
-                    ByteBuffer bottleneck = runPredict(mPredictInterpreter, mStyleImage);
+                    ByteBuffer bottleneck = runPredict(predictInterpreter, mStyleImage);
 
                     Bitmap mTransferredImage =
-                            runTransform(mTransformInterpreter, mContentImage, bottleneck);
+                            runTransform(transformInterpreter, mContentImage, bottleneck);
 
                     saveImage(mTransferredImage);
 
